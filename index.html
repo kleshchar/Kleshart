@@ -57,6 +57,12 @@ body.app-open{overflow:hidden}
 .go b{display:inline-block;transition:transform .25s;font-weight:400}
 .card:hover .go b{transform:translateX(4px)}
 .hf{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px 16px;border-top:1px solid var(--line);padding-top:16px;font:300 10px/1.6 var(--f-ui);letter-spacing:.04em;color:var(--dim)}
+.how{display:grid;gap:18px}
+.how h2{margin:0;font:500 clamp(20px,2vw,24px)/1.1 var(--f-word);letter-spacing:-.01em}
+.how-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:16px}
+.how article{border:1px solid var(--line);border-radius:14px;padding:16px 18px 18px;display:grid;gap:10px;align-content:start}
+.how h3{margin:0;font:500 10px/1 var(--f-ui);letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.how ol,.how ul{margin:0;padding-left:20px;display:grid;gap:7px;font:400 14px/1.5 var(--f-body)}
 .apphost{position:fixed;inset:0;z-index:10}
 @media (prefers-reduced-motion:reduce){.go b{transition:none}}
 </style>
@@ -74,8 +80,8 @@ body.app-open{overflow:hidden}
         <span class="num">01 / 02</span>
         <div>
           <h2>Рассеяние</h2>
-          <p>Фото превращается в 3D-облако частиц. Нейросеть в браузере строит карту глубины, а дальше всплески, трекеры, музыка и запись видео.</p>
-          <ul class="tags"><li>фото</li><li>глубина</li><li>частицы</li></ul>
+          <p>Фото или живая камера превращаются в объёмное облако частиц. Нейросеть строит карту глубины, а сверху — психоделические фильтры, реакция на музыку и запись видео.</p>
+          <ul class="tags"><li>фото</li><li>камера</li><li>фильтры</li><li>частицы</li></ul>
         </div>
         <span class="go">Открыть <b>→</b></span>
       </div>
@@ -92,6 +98,38 @@ body.app-open{overflow:hidden}
         <span class="go">Открыть <b>→</b></span>
       </div>
     </a>
+  </section>
+  <section class="how" aria-labelledby="howTitle">
+    <h2 id="howTitle">Как пользоваться</h2>
+    <div class="how-grid">
+      <article>
+        <h3>Рассеяние</h3>
+        <ol>
+          <li>Нажмите «+ Фото» или «◉ Камера».</li>
+          <li>Касание — всплеск, палец — поворот, два пальца — масштаб.</li>
+          <li>✦ внизу — фильтры: LSD, Калейдоскоп, Тоннель и другие.</li>
+          <li>♪ — музыка или микрофон, ● — запись видео.</li>
+        </ol>
+      </article>
+      <article>
+        <h3>Вихрь</h3>
+        <ol>
+          <li>Нажмите клавишу внизу экрана или A–K на компьютере.</li>
+          <li>Кнопка «Лоренц» открывает библиотеку из 16 фигур.</li>
+          <li>Покрутите главный параметр — звук уйдёт от покоя в хаос.</li>
+          <li>В «Пульте» перетащите x, y, z на любую ручку.</li>
+        </ol>
+      </article>
+      <article id="howApp">
+        <h3>Как приложение</h3>
+        <ul>
+          <li>iPhone: Safari → «Поделиться» → «На экран „Домой“».</li>
+          <li>Android: меню Chrome → «Установить приложение».</li>
+          <li>После первого запуска работает без интернета.</li>
+          <li>Кнопка «?» внутри инструмента открывает подробную справку.</li>
+        </ul>
+      </article>
+    </div>
   </section>
   <footer class="hf"><span>Фото и звук обрабатываются на вашем устройстве и никуда не отправляются.</span><span>kleshart · 2026</span></footer>
 </main>
@@ -126,6 +164,25 @@ body.app-open{overflow:hidden}
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));pointer-events:none}
 .top>*{pointer-events:auto}
 .mark{display:flex;align-items:center;gap:10px;min-width:0}
+.btn.hbtn{width:36px;min-height:36px;padding:0;justify-content:center;font-size:13px;letter-spacing:0;flex:none}
+.help{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.55);display:grid;place-items:center;box-sizing:border-box;
+  padding:calc(env(safe-area-inset-top,0px) + 16px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 16px) max(16px,env(safe-area-inset-left,0px))}
+.help-card{width:min(660px,100%);max-height:100%;overflow:auto;overscroll-behavior:contain;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:16px;padding:0 22px 24px;box-sizing:border-box;-webkit-user-select:text;user-select:text}
+.help-card header{display:flex;justify-content:space-between;align-items:center;gap:12px;position:sticky;top:0;background:var(--bg);padding:18px 0 10px;z-index:1}
+.help-card h2{margin:0;font:500 12px/1.2 var(--f-ui);letter-spacing:.2em;text-transform:uppercase}
+.help-card h3{margin:22px 0 8px;font:500 10px/1 var(--f-ui);letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.help-card p,.help-card li,.help-card dd{font:400 14px/1.55 var(--f-body)}
+.help-card p{margin:0}
+.help-card .lead{color:var(--muted);max-width:60ch}
+.help-card ol,.help-card ul{margin:0;padding-left:20px;display:grid;gap:7px}
+.help-card dl{margin:0;display:grid;grid-template-columns:minmax(0,9.5em) minmax(0,1fr);gap:8px 14px}
+.help-card dt{font:500 11px/1.75 var(--f-ui);letter-spacing:.04em}
+.help-card dd{margin:0;color:var(--muted)}
+.help-card b{font-weight:500}
+.help-card kbd{font:400 11px/1 var(--f-ui);border:1px solid var(--line);border-radius:5px;padding:2px 5px}
+.hclose{flex:none;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--fg);cursor:pointer;font:300 16px/1 var(--f-ui)}
+@media (max-width:560px){.help-card dl{grid-template-columns:1fr;gap:2px}.help-card dd{margin-bottom:8px}.help-card{padding:0 18px 22px}}
+
 .glyph{font-family:var(--f-glyph);font-weight:300;font-size:36px;line-height:1;transform:translateY(-1px)}
 .word{display:grid;gap:3px;min-width:0}
 .word b{font:500 11px/1.1 var(--f-ui);letter-spacing:.24em}
@@ -219,6 +276,7 @@ body.app-open{overflow:hidden}
   <div class="mark">
     <a class="back" href="#" aria-label="Назад в kleshart">‹</a>
     <span class="word"><b>РАССЕЯНИЕ</b><small>фото · глубина · частицы</small></span>
+    <button id="helpBtn" class="btn hbtn" type="button" aria-label="Как пользоваться">?</button>
   </div>
   <div class="actions">
     <button id="addBtn" class="btn primary" type="button"><span class="ico">+</span><span class="lbl">Фото</span></button>
@@ -293,6 +351,50 @@ body.app-open{overflow:hidden}
 <div id="hint" class="hint">нажмите — всплеск · тяните — поворот · колесо или два пальца — масштаб</div>
 <div id="drop" class="drop" hidden><span>Отпустите — до 4 фото</span></div>
 <div id="toast" class="toast" role="status" hidden></div>
+<div id="help" class="help" hidden role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+  <div class="help-card">
+    <header><h2 id="helpTitle">Рассеяние · как пользоваться</h2><button id="helpClose" class="hclose" type="button" aria-label="Закрыть справку">×</button></header>
+    <p class="lead">Превращает фото или живую камеру в объёмное облако частиц. Нейросеть строит карту глубины: близкие предметы выступают вперёд, дальние уходят назад. Поверх можно включить фильтры и звук, а результат записать на видео.</p>
+    <h3>Быстрый старт</h3>
+    <ol>
+      <li>Нажмите <b>+ Фото</b> и выберите снимок (до четырёх) или включите <b>◉ Камеру</b>.</li>
+      <li>Подождите пару секунд: частицы соберутся, а нейросеть сделает картинку объёмной. В первый раз она скачивается, около 30 МБ.</li>
+      <li>Нажмите <b>✦</b> внизу и выберите фильтр: LSD, Калейдоскоп, Тоннель и другие. <b>Стандарт</b> — чистая картинка без обработки.</li>
+      <li><b>● Запись</b> сохраняет видео со звуком.</li>
+    </ol>
+    <h3>Жесты</h3>
+    <dl>
+      <dt>Касание</dt><dd>всплеск: частицы разлетаются волной</dd>
+      <dt>Провести пальцем</dt><dd>повернуть сцену</dd>
+      <dt>Два пальца, колесо</dt><dd>приблизить или отдалить</dd>
+    </dl>
+    <h3>Кнопки</h3>
+    <dl>
+      <dt>+ Фото</dt><dd>до четырёх снимков; переключаются миниатюрами внизу, крестик убирает снимок</dd>
+      <dt>◉ Камера</dt><dd>живое видео вместо фото. В ⚙ можно сменить камеру, выключить зеркало и выбрать глубину: по яркости (мгновенно) или нейросетью (точнее, но тяжелее)</dd>
+      <dt>♪ Звук</dt><dd>музыка из файла, микрофон или звук вкладки на компьютере; рельеф и фильтры двигаются в такт, бас вызывает всплески</dd>
+      <dt>✦ Фильтр</dt><dd>готовые образы одним касанием, «Случайный ✦» собирает новый</dd>
+      <dt>⚙ Настройки</dt><dd>эффекты частиц, движение, цвет, плотность, размер точки, рельеф и тонкая настройка фильтра: 26 ползунков</dd>
+    </dl>
+    <h3>Эффекты частиц</h3>
+    <dl>
+      <dt>Глубина</dt><dd>объём по карте глубины</dd>
+      <dt>Дрейф</dt><dd>частицы мягко дышат</dd>
+      <dt>Скан</dt><dd>световая плоскость проходит сквозь сцену</dd>
+      <dt>Изолинии</dt><dd>рельеф линиями, как на карте высот</dd>
+      <dt>Следы</dt><dd>шлейф за движущимися частицами</dd>
+      <dt>Трекеры, Связи</dt><dd>рамки с координатами, которые следят за точками кадра</dd>
+      <dt>Движение</dt><dd>Полёт, Рой, Таяние, Ветер</dd>
+      <dt>Цвет</dt><dd>Как есть, Негатив, Тушь, Свечение, Тепло (цвет по глубине)</dd>
+    </dl>
+    <h3>Советы</h3>
+    <ul>
+      <li>Если подтормаживает, в ⚙ поставьте «Частицы: редко» или выберите фильтр полегче.</li>
+      <li>На iPhone выключите беззвучный режим, иначе музыку не будет слышно.</li>
+      <li>Фото, видео и звук обрабатываются только на вашем устройстве.</li>
+    </ul>
+  </div>
+</div>
 <input type="file" id="fileIn" accept="image/*" multiple hidden>
 <input type="file" id="audioIn" accept="audio/*" hidden>
 
@@ -338,6 +440,25 @@ button{font:inherit;color:inherit}
 .sysbtn{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--raise);border-radius:999px;padding:0 16px;min-height:40px;font:500 12px/1 var(--f-ui);letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
 .sysbtn i{font-style:normal;color:var(--muted)}
 .infobtn{display:none}
+.helpbtn{display:inline-grid;place-items:center;flex:none;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--raise);color:var(--fg);cursor:pointer;font:500 13px/1 var(--f-ui)}
+.help{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.55);display:grid;place-items:center;box-sizing:border-box;
+  padding:calc(env(safe-area-inset-top,0px) + 16px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 16px) max(16px,env(safe-area-inset-left,0px))}
+.help-card{width:min(660px,100%);max-height:100%;overflow:auto;overscroll-behavior:contain;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:16px;padding:0 22px 24px;box-sizing:border-box;-webkit-user-select:text;user-select:text}
+.help-card header{display:flex;justify-content:space-between;align-items:center;gap:12px;position:sticky;top:0;background:var(--bg);padding:18px 0 10px;z-index:1}
+.help-card h2{margin:0;font:500 12px/1.2 var(--f-ui);letter-spacing:.2em;text-transform:uppercase}
+.help-card h3{margin:22px 0 8px;font:500 10px/1 var(--f-ui);letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.help-card p,.help-card li,.help-card dd{font:400 14px/1.55 var(--f-body)}
+.help-card p{margin:0}
+.help-card .lead{color:var(--muted);max-width:60ch}
+.help-card ol,.help-card ul{margin:0;padding-left:20px;display:grid;gap:7px}
+.help-card dl{margin:0;display:grid;grid-template-columns:minmax(0,9.5em) minmax(0,1fr);gap:8px 14px}
+.help-card dt{font:500 11px/1.75 var(--f-ui);letter-spacing:.04em}
+.help-card dd{margin:0;color:var(--muted)}
+.help-card b{font-weight:500}
+.help-card kbd{font:400 11px/1 var(--f-ui);border:1px solid var(--line);border-radius:5px;padding:2px 5px}
+.hclose{flex:none;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--fg);cursor:pointer;font:300 16px/1 var(--f-ui)}
+@media (max-width:560px){.help-card dl{grid-template-columns:1fr;gap:2px}.help-card dd{margin-bottom:8px}.help-card{padding:0 18px 22px}}
+
 .who{font:300 10px/1.4 var(--f-ui);letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
 .eq{display:grid;gap:6px;font:italic 17px/1.25 var(--f-math);color:var(--fg)}
 .eq div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -491,6 +612,7 @@ button{font:inherit;color:inherit}
   <div class="sysrow">
     <button class="sysbtn" id="sysBtn" type="button" aria-haspopup="dialog"><span id="sysName">Лоренц</span><i>›</i></button>
     <button class="infobtn" id="infoBtn" type="button" aria-expanded="false" aria-label="Уравнения и показания">ƒ</button>
+    <button class="helpbtn" id="helpBtn" type="button" aria-label="Как пользоваться">?</button>
   </div>
   <div class="mini" id="mini"></div>
   <div class="more">
@@ -532,6 +654,47 @@ button{font:inherit;color:inherit}
   </div>
 </footer>
 <div id="toast" class="toast" role="status" hidden></div>
+<div id="help" class="help" hidden role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+  <div class="help-card">
+    <header><h2 id="helpTitle">Вихрь · как пользоваться</h2><button id="helpClose" class="hclose" type="button" aria-label="Закрыть справку">×</button></header>
+    <p class="lead">Синтезатор, которым управляет странный аттрактор. Две точки, A и B, летят по фигуре вроде «бабочки» Лоренца. Их координаты в реальном времени крутят фильтр, панораму и громкость, а вы играете на клавиатуре. B стартует рядом с A и постепенно уходит: так хаос становится слышен.</p>
+    <h3>Быстрый старт</h3>
+    <ol>
+      <li>Нажмите клавишу внизу экрана или <kbd>A</kbd>–<kbd>K</kbd> на клавиатуре компьютера. На iPhone выключите беззвучный режим.</li>
+      <li>Кнопка с названием системы (<b>Лоренц</b>) открывает библиотеку из 16 фигур: Рёсслер, Томас, Айдзава и другие.</li>
+      <li>Покрутите первую ручку в разделе «Движение» (у Лоренца это ρ): фигура и звук перейдут от покоя к циклу и хаосу.</li>
+      <li>Откройте <b>Пульт</b> и перетащите источник x, y или z на любую ручку: фигура начнёт её крутить.</li>
+    </ol>
+    <h3>Клавиатура компьютера</h3>
+    <dl>
+      <dt>A … K</dt><dd>белые клавиши, W E T Y U — чёрные; O L P ; ' продолжают выше</dd>
+      <dt>Z / X</dt><dd>октава ниже или выше</dd>
+      <dt>Пробел</dt><dd>фиксация: ноты звучат, пока не нажмёте новую</dd>
+      <dt>1 · 2 · 0</dt><dd>свести B к A · стоп-кадр · скрыть интерфейс</dd>
+    </dl>
+    <h3>Источники модуляции</h3>
+    <dl>
+      <dt>x, y, z</dt><dd>координаты точки на фигуре</dd>
+      <dt>v</dt><dd>скорость движения</dd>
+      <dt>δ</dt><dd>разлёт: насколько далеко ушла B от A</dd>
+      <dt>m</dt><dd>громкость входа с микрофона или звука системы (раздел «Вход»)</dd>
+    </dl>
+    <p style="margin-top:8px;color:var(--muted)">Перетащите источник на ручку или нажмите метку под ручкой, чтобы выбрать его по кругу. Двойной щелчок по ручке возвращает исходное значение.</p>
+    <h3>Показания слева</h3>
+    <dl>
+      <dt>Режим</dt><dd>ХАОС, ЦИКЛ или ПОКОЙ, и показатель Ляпунова λ: чем он больше, тем быстрее расходятся близкие траектории</dd>
+      <dt>Разлёт ×2</dt><dd>через сколько долей такта расстояние между A и B удваивается</dd>
+      <dt>Петля</dt><dd>сколько раз в секунду точка обходит фигуру; задаётся темпом и долей</dd>
+    </dl>
+    <h3>Ещё</h3>
+    <ul>
+      <li><b>Вид</b>: Оси, Звёзды или Нить; фигуру можно вращать пальцем и приближать двумя пальцами.</li>
+      <li><b>Вход</b>: микрофон или звук вкладки. «Через синтезатор» пропускает живой звук сквозь фильтр и складку; с микрофоном наденьте наушники.</li>
+      <li><b>Свой звук</b>: загрузите сэмпл, и клавиши будут играть его на разной высоте.</li>
+      <li><b>Запись</b> сохраняет видео со звуком, <b>Кадр</b> — картинку.</li>
+    </ul>
+  </div>
+</div>
 <input type="file" id="sampleIn" accept="audio/*" hidden>
 
 </template>
@@ -671,20 +834,20 @@ const fmt = n => n.toLocaleString('ru-RU');
 
 /* ---------------- settings ---------------- */
 const FDEF = { hue: 0, hueSpeed: 0, acid: 0, sat: 1, bright: 1, contrast: 1, poster: 0, invert: 0,
-  wave: 0, waveFreq: 0.35, twirl: 0, lens: 0, kaleido: 0, kaleidoRot: 0, mirror: 0, pixel: 0,
+  wave: 0, waveFreq: 0.35, twirl: 0, lens: 0, kaleido: 0, kaleidoRot: 0, mirror: 0, pixel: 0, sharp: 0.35,
   glow: 0, rgb: 0, scan: 0, grain: 0, vignette: 0, feedback: 0, fbZoom: 0.3, fbRot: 0, fbHue: 0, react: 0.6 };
 const DEFAULTS = {
-  fx: { depth: true, drift: !reduced, splash: true, scan: false, contour: false, trails: false, track: true, links: true },
-  trackers: 'sparse', motion: 'still', palette: 'true', density: 'mid', cycle: false, size: 1.4, depthAmt: 0.9,
+  fx: { depth: true, drift: false, splash: true, scan: false, contour: false, trails: false, track: false, links: false },
+  trackers: 'sparse', motion: 'still', palette: 'true', density: coarse ? 'mid' : 'high', cycle: false, size: 1.5, depthAmt: 0.7,
   filter: Object.assign({}, FDEF), preset: 'none',
 };
 const S = structuredClone(DEFAULTS);
 try {
-  const saved = JSON.parse(localStorage.getItem('rasseyanie.v1') || 'null');
+  const saved = JSON.parse(localStorage.getItem('rasseyanie.v2') || 'null');
   if (saved) { Object.assign(S, saved, { fx: Object.assign({}, DEFAULTS.fx, saved.fx || {}) }); }
   S.filter = Object.assign({}, FDEF, S.filter || {});
 } catch (e) {}
-const save = () => { try { localStorage.setItem('rasseyanie.v1', JSON.stringify(S)); } catch (e) {} };
+const save = () => { try { localStorage.setItem('rasseyanie.v2', JSON.stringify(S)); } catch (e) {} };
 
 const FX = [['depth', 'Глубина'], ['drift', 'Дрейф'], ['splash', 'Всплеск'], ['scan', 'Скан'], ['contour', 'Изолинии'], ['trails', 'Следы'], ['track', 'Трекеры'], ['links', 'Связи']];
 const GROUPS = [
@@ -807,7 +970,7 @@ void main(){
   vec2 c = gl_PointCoord - 0.5;
   float r = length(c);
   if (r > 0.5) discard;
-  float soft = smoothstep(0.5, 0.3, r);
+  float soft = smoothstep(0.5, 0.42, r);
   vec3 col = vColor;
   float a = vAlpha * soft;
   float lum = dot(col, vec3(0.299, 0.587, 0.114));
@@ -844,7 +1007,7 @@ for (const k of Object.keys(FDEF)) if (!PU['u_' + k]) PU['u_' + k] = { value: FD
 const POST_FRAG = /* glsl */`
 uniform sampler2D tScene, tPrev; uniform vec2 uRes; uniform float uTime, uAudio, uLight, uMirror, uKaleido;
 uniform vec3 uBg;
-uniform float u_hue, u_hueSpeed, u_acid, u_sat, u_bright, u_contrast, u_poster, u_invert, u_wave, u_waveFreq, u_twirl, u_lens, u_kaleidoRot, u_pixel, u_glow, u_rgb, u_feedback, u_fbZoom, u_fbRot, u_fbHue, u_react;
+uniform float u_sharp, u_hue, u_hueSpeed, u_acid, u_sat, u_bright, u_contrast, u_poster, u_invert, u_wave, u_waveFreq, u_twirl, u_lens, u_kaleidoRot, u_pixel, u_glow, u_rgb, u_feedback, u_fbZoom, u_fbRot, u_fbHue, u_react;
 varying vec2 vUv;
 vec3 hueRot(vec3 c, float a) { const vec3 k = vec3(0.57735); float ca = cos(a); return c * ca + cross(k, c) * sin(a) + k * dot(k, c) * (1.0 - ca); }
 float inside(vec2 u) { return step(0.0, u.x) * step(u.x, 1.0) * step(0.0, u.y) * step(u.y, 1.0); }
@@ -873,6 +1036,11 @@ void main() {
     vec2 d = (uv - 0.5) * u_rgb * 0.045 * (1.0 + react * 3.0) + vec2(u_rgb * 0.004 * sin(t * 3.1), u_rgb * 0.002 * cos(t * 2.3));
     col = vec3(texture2D(tScene, uv + d).r, texture2D(tScene, uv).g, texture2D(tScene, uv - d).b);
   } else col = texture2D(tScene, uv).rgb;
+  if (u_sharp > 0.001) {
+    vec2 r = 1.0 / uRes;
+    vec3 nb = texture2D(tScene, uv + vec2(r.x, 0.0)).rgb + texture2D(tScene, uv - vec2(r.x, 0.0)).rgb + texture2D(tScene, uv + vec2(0.0, r.y)).rgb + texture2D(tScene, uv - vec2(0.0, r.y)).rgb;
+    col += (col - nb * 0.25) * u_sharp * 1.4;
+  }
   col = mix(uBg, col, inside(uv));
   if (u_glow > 0.001) {
     vec3 g = vec3(0.0); vec2 r = 1.0 / uRes;
@@ -940,7 +1108,7 @@ function renderFrame(dt) {
 }
 
 const PRESETS = [
-  ['none', 'Без фильтра', {}],
+  ['none', 'Стандарт', {}],
   ['lsd', 'LSD', { hueSpeed: 0.35, acid: 0.35, sat: 1.6, wave: 0.45, waveFreq: 0.35, rgb: 0.45, glow: 0.5, feedback: 0.78, fbZoom: 0.45, fbRot: 0.2, fbHue: 0.55, react: 0.9 }],
   ['acid', 'Кислота', { hueSpeed: 0.5, acid: 0.9, sat: 1.4, contrast: 1.25, poster: 0.4, rgb: 0.3, react: 0.8 }],
   ['kaleido', 'Калейдоскоп', { kaleido: 8, kaleidoRot: 0.15, glow: 0.35, hueSpeed: 0.15, sat: 1.35, feedback: 0.45, fbZoom: 0.25 }],
@@ -950,7 +1118,7 @@ const PRESETS = [
   ['holo', 'Голограмма', { hue: 0.48, sat: 0.8, rgb: 0.7, scan: 0.6, glow: 0.45, grain: 0.15, wave: 0.05, waveFreq: 0.9 }],
   ['vhs', 'VHS', { rgb: 0.45, scan: 0.5, grain: 0.5, sat: 0.75, contrast: 1.15, wave: 0.07, waveFreq: 0.95, vignette: 0.45 }],
   ['neon', 'Неон', { glow: 1.2, contrast: 1.45, sat: 1.9, poster: 0.15, vignette: 0.3 }],
-  ['dream', 'Сон', { glow: 0.75, feedback: 0.6, fbZoom: 0.12, bright: 1.08, sat: 0.85, vignette: 0.5, lens: 0.3 }],
+  ['dream', 'Сон', { sharp: 0, glow: 0.75, feedback: 0.6, fbZoom: 0.12, bright: 1.08, sat: 0.85, vignette: 0.5, lens: 0.3 }],
   ['mirror', 'Зеркало', { mirror: 3, glow: 0.25, hueSpeed: 0.08 }],
   ['pixel', 'Пиксели', { pixel: 0.45, poster: 0.55, sat: 1.35, contrast: 1.1 }],
   ['negative', 'Вспышка', { invert: 1, hueSpeed: 0.25, glow: 0.4, rgb: 0.25 }],
@@ -961,7 +1129,7 @@ const FSL = [
             ['bright', 'Яркость', 0.3, 2, 0.01], ['contrast', 'Контраст', 0.4, 2.5, 0.01], ['poster', 'Постеризация', 0, 1, 0.01], ['invert', 'Инверсия', 0, 1, 0.01]]],
   ['Искажения', [['wave', 'Волна', 0, 1, 0.01], ['waveFreq', 'Частота волны', 0, 1, 0.01], ['twirl', 'Закрутка', -1, 1, 0.01], ['lens', 'Линза', -1, 1, 0.01],
                  ['kaleido', 'Калейдоскоп, лучей', 0, 16, 1], ['kaleidoRot', 'Вращение калейдоскопа', -1, 1, 0.01], ['pixel', 'Пиксели', 0, 1, 0.01]]],
-  ['Свет', [['glow', 'Свечение', 0, 1.5, 0.01], ['rgb', 'Расслоение RGB', 0, 1, 0.01], ['scan', 'Строки', 0, 1, 0.01], ['grain', 'Зерно', 0, 1, 0.01], ['vignette', 'Виньетка', 0, 1, 0.01]]],
+  ['Свет', [['glow', 'Свечение', 0, 1.5, 0.01], ['rgb', 'Расслоение RGB', 0, 1, 0.01], ['scan', 'Строки', 0, 1, 0.01], ['grain', 'Зерно', 0, 1, 0.01], ['vignette', 'Виньетка', 0, 1, 0.01], ['sharp', 'Резкость', 0, 1.5, 0.01]]],
   ['Шлейф', [['feedback', 'Длина шлейфа', 0, 0.97, 0.01], ['fbZoom', 'Затягивание', -1, 1, 0.01], ['fbRot', 'Поворот', -1, 1, 0.01], ['fbHue', 'Радуга в шлейфе', 0, 1, 0.01]]],
   ['Звук', [['react', 'Реакция на звук', 0, 1.5, 0.01]]],
 ];
@@ -1127,7 +1295,7 @@ function buildParticles(item) {
   const dH = item.depthH, dM = item.depthML || item.depthH;
   for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
     const k = j * cols + i;
-    const u = (i + 0.5 + (Math.random() - 0.5) * 0.7) / cols, v = (j + 0.5 + (Math.random() - 0.5) * 0.7) / rows;
+    const u = (i + 0.5 + (Math.random() - 0.5) * 0.25) / cols, v = (j + 0.5 + (Math.random() - 0.5) * 0.25) / rows;
     pos[k * 3] = (u * 2 - 1) * aspect; pos[k * 3 + 1] = 1 - v * 2; pos[k * 3 + 2] = 0; uvs[k * 2] = u; uvs[k * 2 + 1] = v;
     col[k * 3] = px[k * 4] / 255; col[k * 3 + 1] = px[k * 4 + 1] / 255; col[k * 3 + 2] = px[k * 4 + 2] / 255;
     dep[k * 2] = sampleD(dH, u, v); dep[k * 2 + 1] = sampleD(dM, u, v);
@@ -1596,7 +1764,7 @@ $('panelBtn').addEventListener('click', () => {
   const p = $('panel'); p.hidden = !p.hidden; $('panelBtn').setAttribute('aria-expanded', String(!p.hidden)); hideHint();
 });
 $('resetBtn').addEventListener('click', resetCam);
-on('keydown', e => { if (e.key === 'Escape' && !$('panel').hidden) { $('panel').hidden = true; $('panelBtn').setAttribute('aria-expanded', 'false'); } });
+on('keydown', e => { if (e.key === 'Escape' && !$('help').hidden) { openHelp(false); return; } if (e.key === 'Escape' && !$('panel').hidden) { $('panel').hidden = true; $('panelBtn').setAttribute('aria-expanded', 'false'); } });
 
 let toastTimer = 0;
 function toast(msg, ms = 3200) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, ms); }
@@ -1924,8 +2092,8 @@ function frame(now) {
   camTick(dt);
 
   const sway = S.fx.depth && !reduced ? 1 : 0, tr = cam.travel;
-  const yawT = cam.uYaw + sway * Math.sin(t * 0.23) * 0.16 + cam.hx * 0.14 + tr * Math.sin(t * 0.11) * 0.45;
-  const pitT = cam.uPitch + sway * Math.sin(t * 0.17) * 0.06 - cam.hy * 0.09;
+  const yawT = cam.uYaw + sway * Math.sin(t * 0.23) * 0.1 + cam.hx * 0.14 + tr * Math.sin(t * 0.11) * 0.45;
+  const pitT = cam.uPitch + sway * Math.sin(t * 0.17) * 0.04 - cam.hy * 0.09;
   const k = 1 - Math.exp(-dt * 4);
   cam.cy += (yawT - cam.cy) * k; cam.cp += (pitT - cam.cp) * k; cam.cz += (cam.zoom - cam.cz) * k;
   const dist = cam.base * cam.cz * (1 - tr * 0.62 * (0.5 - 0.5 * Math.cos(t * 0.21)));
@@ -1945,6 +2113,18 @@ function frame(now) {
 /* ---------------- boot ---------------- */
 demo = makeDemo();
 setGround();
+const HELP_KEY = 'kleshart.help.rasseyanie';
+/* ---------------- help ---------------- */
+function openHelp(on) {
+  $('help').hidden = !on;
+  if (on) $('helpClose').focus(); else $('helpBtn').focus();
+  try { localStorage.setItem(HELP_KEY, '1'); } catch (e) {}
+}
+function maybeFirstHelp() { let seen = true; try { seen = !!localStorage.getItem(HELP_KEY); } catch (e) {} if (!seen) openHelp(true); }
+$('helpBtn').addEventListener('click', () => openHelp(true));
+$('helpClose').addEventListener('click', () => openHelp(false));
+$('help').addEventListener('click', e => { if (e.target === $('help')) openHelp(false); });
+
 /* ---------------- filter controls ---------------- */
 function presetName() { const p = PRESETS.find(x => x[0] === S.preset); return p ? p[1] : 'свой'; }
 function applyPreset(id) { const p = PRESETS.find(x => x[0] === id); if (!p) return; S.filter = Object.assign({}, FDEF, p[2]); S.preset = id; save(); renderFilterUI(); }
@@ -2012,7 +2192,7 @@ switchTo(demo, true);
 setTimeout(hideHint, 9000);
 
   return {
-    show() { active = true; setGround(); resize(); if (!running) { running = true; last = performance.now(); requestAnimationFrame(frame); } },
+    show() { active = true; setGround(); resize(); maybeFirstHelp(); if (!running) { running = true; last = performance.now(); requestAnimationFrame(frame); } },
     hide() { active = false; stopAllAudio(); if (camv.on) stopCamera(true); if (rec.mr) rec.mr.stop(); },
   };
 }
@@ -2757,6 +2937,7 @@ $('rackBtn').addEventListener('click', () => toggleRack(!host.classList.contains
 
 on('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (!$('help').hidden) { if (e.key === 'Escape') openHelp(false); return; }
   const tg = e.composedPath ? e.composedPath()[0] : e.target; if (tg && tg.closest && tg.closest('input,textarea,[role="slider"]') && !KEYMAP.includes(e.code)) return;
   if (e.key === 'Escape') { openLib(false); toggleRack(false); $('info').classList.remove('open'); return; }
   const i = KEYMAP.indexOf(e.code);
@@ -2840,6 +3021,18 @@ $('recBtn').addEventListener('click', () => {
   if ($('saveSec')) { $('saveSec').hidden = !downloads; $('snap2').hidden = !downloads; }
 })();
 
+const HELP_KEY = 'kleshart.help.vikhr';
+/* ---------------- help ---------------- */
+function openHelp(on) {
+  $('help').hidden = !on;
+  if (on) $('helpClose').focus(); else $('helpBtn').focus();
+  try { localStorage.setItem(HELP_KEY, '1'); } catch (e) {}
+}
+function maybeFirstHelp() { let seen = true; try { seen = !!localStorage.getItem(HELP_KEY); } catch (e) {} if (!seen) openHelp(true); }
+$('helpBtn').addEventListener('click', () => openHelp(true));
+$('helpClose').addEventListener('click', () => openHelp(false));
+$('help').addEventListener('click', e => { if (e.target === $('help')) openHelp(false); });
+
 /* ================= main loop ================= */
 let last = performance.now(), uiAcc = 0, modAcc = 0, act = 0;
 const v3 = new THREE.Vector3();
@@ -2895,7 +3088,7 @@ mobileQ.addEventListener('change', () => { buildKeys(); setHint(); });
 setTimeout(hideHint, 14000);
 
   return {
-    show() { active = true; document.querySelector('meta[name="theme-color"]').content = '#060708'; sizeStage(); if (!running) { running = true; last = performance.now(); requestAnimationFrame(frame); } },
+    show() { active = true; document.querySelector('meta[name="theme-color"]').content = '#060708'; sizeStage(); maybeFirstHelp(); if (!running) { running = true; last = performance.now(); requestAnimationFrame(frame); } },
     hide() { active = false; allOff(); stopInput(); if (rec.mr) rec.mr.stop(); toggleRack(false); openLib(false); if (AU.ctx && AU.ctx.state === 'running') AU.ctx.suspend(); },
   };
 }
@@ -3007,6 +3200,7 @@ function route() {
   }
   current = next;
 }
+document.getElementById('howApp').hidden = !SELF_HOSTED;
 addEventListener('hashchange', route);
 route();
 </script>
