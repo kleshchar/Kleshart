@@ -161,6 +161,19 @@ body.app-open{overflow:hidden}
 .status b{font-weight:400;color:var(--fg)}
 .status .bar{display:inline-block;width:64px;height:3px;background:var(--line);vertical-align:middle;margin:0 6px 1px;border-radius:2px;overflow:hidden}
 .status .bar i{display:block;height:100%;background:var(--accent);width:0}
+.brow{display:flex;gap:8px}
+.btn.fx-on{border-color:var(--accent)} .btn.fx-on .ico{color:var(--accent)}
+.fstrip{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 116px);display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;
+  padding:4px max(16px,env(safe-area-inset-right,0px)) 4px max(16px,env(safe-area-inset-left,0px));-webkit-overflow-scrolling:touch}
+.fstrip::-webkit-scrollbar{display:none}
+.fstrip .chip{flex:none;background:var(--panel);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.fstrip .chip[aria-pressed="true"]{background:var(--fg)}
+.sliders{display:grid;gap:12px}
+.sliders h4{margin:8px 0 0;font:500 9.5px/1 var(--f-ui);letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.sl{display:grid;grid-template-columns:1fr auto;gap:5px 8px;align-items:center}
+.sl label{font:400 12px/1.25 var(--f-body);color:var(--fg)}
+.sl output{font:400 10px/1 var(--f-ui);color:var(--muted);font-variant-numeric:tabular-nums}
+.sl input{grid-column:1/-1}
 
 .panel{position:fixed;right:max(16px,env(safe-area-inset-right,0px));top:calc(env(safe-area-inset-top,0px) + 72px);width:312px;
   max-height:calc(100% - 172px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 16px 18px;
@@ -220,9 +233,13 @@ body.app-open{overflow:hidden}
     <div id="thumbs" class="thumbs"></div>
     <div id="status" class="status" aria-live="polite"></div>
   </div>
-  <button id="panelBtn" class="btn" type="button" aria-expanded="false" aria-controls="panel"><span class="ico">⚙</span><span class="lbl">Настройки</span></button>
+  <div class="brow">
+    <button id="fxBtn" class="btn" type="button" aria-expanded="false" aria-controls="fstrip"><span class="ico">✦</span><span class="lbl">Фильтр</span></button>
+    <button id="panelBtn" class="btn" type="button" aria-expanded="false" aria-controls="panel"><span class="ico">⚙</span><span class="lbl">Настройки</span></button>
+  </div>
 </div>
 
+<div id="fstrip" class="fstrip" hidden role="group" aria-label="Фильтры"></div>
 <aside id="panel" class="panel" hidden aria-label="Настройки">
   <section id="camSec" hidden>
     <h3>Камера</h3>
@@ -233,6 +250,16 @@ body.app-open{overflow:hidden}
     </div>
     <div class="chips" id="camDepth"></div>
     <p class="note">Всё, что ниже — эффекты, цвет, движение, трекеры, запись — работает поверх камеры как фильтры. Видео не покидает устройство.</p>
+  </section>
+  <section id="filterSec">
+    <h3>Фильтр <span id="filterName"></span></h3>
+    <div class="chips" id="presetChips"></div>
+    <div class="row">
+      <button id="fRandom" class="chip" type="button">Случайный</button>
+      <button id="fReset" class="chip" type="button">Сбросить</button>
+      <button id="fTune" class="chip" type="button" aria-expanded="false" aria-controls="fSliders">Тонкая настройка</button>
+    </div>
+    <div class="sliders" id="fSliders" hidden></div>
   </section>
   <section><h3>Эффекты</h3><div class="chips" id="fxChips"></div></section>
   <section id="groups"></section>
@@ -643,14 +670,19 @@ const fract = x => x - Math.floor(x);
 const fmt = n => n.toLocaleString('ru-RU');
 
 /* ---------------- settings ---------------- */
+const FDEF = { hue: 0, hueSpeed: 0, acid: 0, sat: 1, bright: 1, contrast: 1, poster: 0, invert: 0,
+  wave: 0, waveFreq: 0.35, twirl: 0, lens: 0, kaleido: 0, kaleidoRot: 0, mirror: 0, pixel: 0,
+  glow: 0, rgb: 0, scan: 0, grain: 0, vignette: 0, feedback: 0, fbZoom: 0.3, fbRot: 0, fbHue: 0, react: 0.6 };
 const DEFAULTS = {
   fx: { depth: true, drift: !reduced, splash: true, scan: false, contour: false, trails: false, track: true, links: true },
   trackers: 'sparse', motion: 'still', palette: 'true', density: 'mid', cycle: false, size: 1.4, depthAmt: 0.9,
+  filter: Object.assign({}, FDEF), preset: 'none',
 };
 const S = structuredClone(DEFAULTS);
 try {
   const saved = JSON.parse(localStorage.getItem('rasseyanie.v1') || 'null');
   if (saved) { Object.assign(S, saved, { fx: Object.assign({}, DEFAULTS.fx, saved.fx || {}) }); }
+  S.filter = Object.assign({}, FDEF, S.filter || {});
 } catch (e) {}
 const save = () => { try { localStorage.setItem('rasseyanie.v1', JSON.stringify(S)); } catch (e) {} };
 
@@ -801,6 +833,138 @@ const fadeMesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), fadeMat);
 fadeMesh.frustumCulled = false;
 fadeScene.add(fadeMesh);
 const fadeCam = new THREE.Camera();
+
+/* ---------------- filters: a full-screen pass over the particles (warp, colour, glow, feedback trails) ---------------- */
+const RT_OPTS = { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, depthBuffer: false, stencilBuffer: false };
+const rtScene = new THREE.WebGLRenderTarget(2, 2, RT_OPTS);
+let rtA = new THREE.WebGLRenderTarget(2, 2, RT_OPTS), rtB = new THREE.WebGLRenderTarget(2, 2, RT_OPTS);
+const PU = { tScene: { value: rtScene.texture }, tPrev: { value: rtA.texture }, uRes: { value: new THREE.Vector2(2, 2) }, uTime: { value: 0 }, uAudio: { value: 0 },
+  uBg: { value: new THREE.Vector3() }, uLight: { value: 0 }, uMirror: { value: 0 }, uKaleido: { value: 0 } };
+for (const k of Object.keys(FDEF)) if (!PU['u_' + k]) PU['u_' + k] = { value: FDEF[k] };
+const POST_FRAG = /* glsl */`
+uniform sampler2D tScene, tPrev; uniform vec2 uRes; uniform float uTime, uAudio, uLight, uMirror, uKaleido;
+uniform vec3 uBg;
+uniform float u_hue, u_hueSpeed, u_acid, u_sat, u_bright, u_contrast, u_poster, u_invert, u_wave, u_waveFreq, u_twirl, u_lens, u_kaleidoRot, u_pixel, u_glow, u_rgb, u_feedback, u_fbZoom, u_fbRot, u_fbHue, u_react;
+varying vec2 vUv;
+vec3 hueRot(vec3 c, float a) { const vec3 k = vec3(0.57735); float ca = cos(a); return c * ca + cross(k, c) * sin(a) + k * dot(k, c) * (1.0 - ca); }
+float inside(vec2 u) { return step(0.0, u.x) * step(u.x, 1.0) * step(0.0, u.y) * step(u.y, 1.0); }
+void main() {
+  float t = uTime, react = u_react * uAudio;
+  vec2 asp = vec2(uRes.x / uRes.y, 1.0), uv = vUv;
+  if (uMirror > 0.5) { if (uMirror < 1.5) uv.x = 0.5 - abs(uv.x - 0.5); else if (uMirror < 2.5) uv.y = 0.5 - abs(uv.y - 0.5); else uv = 0.5 - abs(uv - 0.5); }
+  vec2 p = (uv - 0.5) * asp;
+  if (uKaleido > 1.5) {
+    float r = length(p), a = atan(p.y, p.x) + u_kaleidoRot * t * 0.8, seg = 6.28318 / uKaleido;
+    a = mod(a, seg); a = abs(a - seg * 0.5); p = r * vec2(cos(a), sin(a));
+  }
+  if (abs(u_twirl) > 0.001) {
+    float r = length(p), a = u_twirl * 3.2 * max(0.0, 1.0 - r / 0.95) * (1.0 + 0.25 * sin(t * 0.7)) * (1.0 + react);
+    float sa = sin(a), ca = cos(a); p = vec2(ca * p.x - sa * p.y, sa * p.x + ca * p.y);
+  }
+  if (abs(u_lens) > 0.001) p *= 1.0 - u_lens * 0.9 * (0.3 - dot(p, p));
+  if (u_wave > 0.001) {
+    float f = 3.0 + u_waveFreq * 26.0, amp = u_wave * 0.055 * (1.0 + react * 2.0);
+    p += amp * vec2(sin(p.y * f + t * 1.7) + 0.5 * sin(p.y * f * 2.3 - t * 2.9 + p.x * 3.0), cos(p.x * f * 0.9 + t * 1.3) + 0.5 * cos(p.x * f * 1.9 + t * 2.1 - p.y * 2.0));
+  }
+  uv = p / asp + 0.5;
+  if (u_pixel > 0.001) { vec2 cell = mix(1.0, 56.0, u_pixel * u_pixel) / uRes; uv = (floor(uv / cell) + 0.5) * cell; }
+  vec3 col;
+  if (u_rgb > 0.001) {
+    vec2 d = (uv - 0.5) * u_rgb * 0.045 * (1.0 + react * 3.0) + vec2(u_rgb * 0.004 * sin(t * 3.1), u_rgb * 0.002 * cos(t * 2.3));
+    col = vec3(texture2D(tScene, uv + d).r, texture2D(tScene, uv).g, texture2D(tScene, uv - d).b);
+  } else col = texture2D(tScene, uv).rgb;
+  col = mix(uBg, col, inside(uv));
+  if (u_glow > 0.001) {
+    vec3 g = vec3(0.0); vec2 r = 1.0 / uRes;
+    for (int i = 0; i < 8; i++) {
+      float a = float(i) * 0.785398;
+      g += texture2D(tScene, uv + vec2(cos(a), sin(a)) * r * 5.0).rgb + texture2D(tScene, uv + vec2(cos(a + 0.39), sin(a + 0.39)) * r * 13.0).rgb;
+    }
+    vec3 gd = g / 16.0 - uBg;
+    col += (uLight > 0.5 ? min(gd, vec3(0.0)) : max(gd, vec3(0.0))) * u_glow * 1.5 * (1.0 + react);
+  }
+  col = hueRot(col, u_hue * 6.28318 + t * u_hueSpeed * 2.2 + react * 1.2);
+  if (u_acid > 0.001) {
+    float l = dot(col, vec3(0.299, 0.587, 0.114));
+    vec3 pal = 0.5 + 0.5 * cos(6.28318 * (l * 1.6 + t * (0.05 + u_hueSpeed * 0.4) + vec3(0.0, 0.33, 0.67)));
+    col = mix(col, pal * (0.1 + 1.1 * l), u_acid);
+  }
+  float l = dot(col, vec3(0.299, 0.587, 0.114));
+  col = mix(vec3(l), col, u_sat);
+  col = (col - 0.5) * u_contrast + 0.5;
+  col *= u_bright;
+  if (u_poster > 0.001) { float n = mix(18.0, 2.0, u_poster); col = floor(clamp(col, 0.0, 1.0) * n + 0.5) / n; }
+  col = mix(col, 1.0 - col, u_invert);
+  if (u_feedback > 0.001) {
+    vec2 q = (vUv - 0.5) * asp;
+    float z = 1.0 - u_fbZoom * 0.035 * (1.0 + react), ra = u_fbRot * 0.035;
+    q = vec2(cos(ra) * q.x - sin(ra) * q.y, sin(ra) * q.x + cos(ra) * q.y) * z;
+    vec2 fuv = q / asp + 0.5;
+    vec3 prev = hueRot(texture2D(tPrev, fuv).rgb, u_fbHue * 0.25);
+    prev = mix(uBg, mix(uBg, prev, inside(fuv)), u_feedback);
+    col = uLight > 0.5 ? min(col, prev) : max(col, prev);
+  }
+  gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
+}`;
+const FINAL_FRAG = /* glsl */`
+uniform sampler2D tIn; uniform vec2 uRes; uniform float uTime, u_scan, u_grain, u_vignette;
+varying vec2 vUv;
+void main() {
+  vec3 col = texture2D(tIn, vUv).rgb;
+  if (u_scan > 0.001) col *= 1.0 - u_scan * 0.42 * (0.5 + 0.5 * sin(vUv.y * uRes.y * 1.5708 + uTime * 6.0));
+  if (u_vignette > 0.001) { vec2 q = (vUv - 0.5) * vec2(uRes.x / uRes.y, 1.0); col *= 1.0 - u_vignette * smoothstep(0.3, 1.05, length(q)); }
+  if (u_grain > 0.001) { float n = fract(sin(dot(floor(vUv * uRes) + floor(fract(uTime * 9.7) * 97.0), vec2(12.9898, 78.233))) * 43758.5453); col += (n - 0.5) * u_grain * 0.24; }
+  gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
+}`;
+const QUAD_VERT = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }';
+const postMat = new THREE.ShaderMaterial({ uniforms: PU, vertexShader: QUAD_VERT, fragmentShader: POST_FRAG, depthTest: false, depthWrite: false });
+const FU = { tIn: { value: rtB.texture }, uRes: PU.uRes, uTime: PU.uTime, u_scan: PU.u_scan, u_grain: PU.u_grain, u_vignette: PU.u_vignette };
+const finalMat = new THREE.ShaderMaterial({ uniforms: FU, vertexShader: QUAD_VERT, fragmentShader: FINAL_FRAG, depthTest: false, depthWrite: false });
+const postScene = new THREE.Scene(), finalScene = new THREE.Scene();
+for (const [sc, m] of [[postScene, postMat], [finalScene, finalMat]]) { const q = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), m); q.frustumCulled = false; sc.add(q); }
+function sizeTargets() {
+  const w = Math.max(2, glCanvas.width), h = Math.max(2, glCanvas.height);
+  rtScene.setSize(w, h); rtA.setSize(w, h); rtB.setSize(w, h); PU.uRes.value.set(w, h);
+}
+function renderFrame(dt) {
+  renderer.setRenderTarget(rtScene);
+  renderer.render(fadeScene, fadeCam);
+  if (points) renderer.render(scene, camera);
+  PU.uTime.value += dt; PU.uAudio.value = U.uAudio.value;
+  const f = S.filter, k = 1 - Math.exp(-dt * 4);
+  for (const key of Object.keys(FDEF)) { if (key === 'kaleido' || key === 'mirror') continue; const u = PU['u_' + key]; u.value += (f[key] - u.value) * k; }
+  PU.uKaleido.value = f.kaleido; PU.uMirror.value = f.mirror;
+  PU.tPrev.value = rtA.texture; renderer.setRenderTarget(rtB); renderer.render(postScene, fadeCam);
+  FU.tIn.value = rtB.texture; renderer.setRenderTarget(null); renderer.render(finalScene, fadeCam);
+  const t = rtA; rtA = rtB; rtB = t;
+}
+
+const PRESETS = [
+  ['none', 'Без фильтра', {}],
+  ['lsd', 'LSD', { hueSpeed: 0.35, acid: 0.35, sat: 1.6, wave: 0.45, waveFreq: 0.35, rgb: 0.45, glow: 0.5, feedback: 0.78, fbZoom: 0.45, fbRot: 0.2, fbHue: 0.55, react: 0.9 }],
+  ['acid', 'Кислота', { hueSpeed: 0.5, acid: 0.9, sat: 1.4, contrast: 1.25, poster: 0.4, rgb: 0.3, react: 0.8 }],
+  ['kaleido', 'Калейдоскоп', { kaleido: 8, kaleidoRot: 0.15, glow: 0.35, hueSpeed: 0.15, sat: 1.35, feedback: 0.45, fbZoom: 0.25 }],
+  ['tunnel', 'Тоннель', { feedback: 0.92, fbZoom: 0.85, fbRot: 0.35, fbHue: 0.4, glow: 0.3, vignette: 0.55, sat: 1.2 }],
+  ['liquid', 'Жидкость', { wave: 0.8, waveFreq: 0.18, twirl: 0.35, glow: 0.25, sat: 1.25, feedback: 0.3, fbZoom: 0.1 }],
+  ['vortex', 'Водоворот', { twirl: 0.9, hueSpeed: 0.2, feedback: 0.6, fbRot: 0.7, fbZoom: 0.3, fbHue: 0.3, glow: 0.3 }],
+  ['holo', 'Голограмма', { hue: 0.48, sat: 0.8, rgb: 0.7, scan: 0.6, glow: 0.45, grain: 0.15, wave: 0.05, waveFreq: 0.9 }],
+  ['vhs', 'VHS', { rgb: 0.45, scan: 0.5, grain: 0.5, sat: 0.75, contrast: 1.15, wave: 0.07, waveFreq: 0.95, vignette: 0.45 }],
+  ['neon', 'Неон', { glow: 1.2, contrast: 1.45, sat: 1.9, poster: 0.15, vignette: 0.3 }],
+  ['dream', 'Сон', { glow: 0.75, feedback: 0.6, fbZoom: 0.12, bright: 1.08, sat: 0.85, vignette: 0.5, lens: 0.3 }],
+  ['mirror', 'Зеркало', { mirror: 3, glow: 0.25, hueSpeed: 0.08 }],
+  ['pixel', 'Пиксели', { pixel: 0.45, poster: 0.55, sat: 1.35, contrast: 1.1 }],
+  ['negative', 'Вспышка', { invert: 1, hueSpeed: 0.25, glow: 0.4, rgb: 0.25 }],
+  ['film', 'Плёнка', { sat: 0, contrast: 1.3, grain: 0.6, vignette: 0.6, scan: 0.1 }],
+];
+const FSL = [
+  ['Цвет', [['hue', 'Оттенок', 0, 1, 0.01], ['hueSpeed', 'Бегущая радуга', 0, 1, 0.01], ['acid', 'Кислотная палитра', 0, 1, 0.01], ['sat', 'Насыщенность', 0, 2.5, 0.01],
+            ['bright', 'Яркость', 0.3, 2, 0.01], ['contrast', 'Контраст', 0.4, 2.5, 0.01], ['poster', 'Постеризация', 0, 1, 0.01], ['invert', 'Инверсия', 0, 1, 0.01]]],
+  ['Искажения', [['wave', 'Волна', 0, 1, 0.01], ['waveFreq', 'Частота волны', 0, 1, 0.01], ['twirl', 'Закрутка', -1, 1, 0.01], ['lens', 'Линза', -1, 1, 0.01],
+                 ['kaleido', 'Калейдоскоп, лучей', 0, 16, 1], ['kaleidoRot', 'Вращение калейдоскопа', -1, 1, 0.01], ['pixel', 'Пиксели', 0, 1, 0.01]]],
+  ['Свет', [['glow', 'Свечение', 0, 1.5, 0.01], ['rgb', 'Расслоение RGB', 0, 1, 0.01], ['scan', 'Строки', 0, 1, 0.01], ['grain', 'Зерно', 0, 1, 0.01], ['vignette', 'Виньетка', 0, 1, 0.01]]],
+  ['Шлейф', [['feedback', 'Длина шлейфа', 0, 0.97, 0.01], ['fbZoom', 'Затягивание', -1, 1, 0.01], ['fbRot', 'Поворот', -1, 1, 0.01], ['fbHue', 'Радуга в шлейфе', 0, 1, 0.01]]],
+  ['Звук', [['react', 'Реакция на звук', 0, 1.5, 0.01]]],
+];
 
 /* ---------------- images & depth ---------------- */
 const images = [];          // user photos, up to 4
@@ -1128,6 +1292,7 @@ function fit() {
 function resize() {
   renderer.setSize(innerWidth, innerHeight, false);
   hud.width = glCanvas.width; hud.height = glCanvas.height;
+  sizeTargets();
   camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
   fit();
 }
@@ -1398,6 +1563,7 @@ function setGround() {
   U.uPalette.value = p.i;
   const ac = ACCENT[p.ground]; U.uAccent.value.set(ac[0] / 255, ac[1] / 255, ac[2] / 255);
   fadeMat.uniforms.uColor.value.set(p.bg[0] / 255, p.bg[1] / 255, p.bg[2] / 255);
+  PU.uBg.value.set(p.bg[0] / 255, p.bg[1] / 255, p.bg[2] / 255); PU.uLight.value = p.ground === 'light' ? 1 : 0;
   mat.blending = p.add ? THREE.AdditiveBlending : THREE.NormalBlending; mat.needsUpdate = true;
   fadeMat.uniforms.uAlpha.value = 1;
 }
@@ -1766,8 +1932,7 @@ function frame(now) {
   camera.position.set(dist * Math.sin(cam.cy) * Math.cos(cam.cp), dist * Math.sin(cam.cp), dist * Math.cos(cam.cy) * Math.cos(cam.cp));
   camera.lookAt(0, 0, 0);
 
-  renderer.render(fadeScene, fadeCam);
-  if (points) renderer.render(scene, camera);
+  renderFrame(dt);
   drawHud(dt);
   if (rec.mr) {
     composite();
@@ -1780,6 +1945,67 @@ function frame(now) {
 /* ---------------- boot ---------------- */
 demo = makeDemo();
 setGround();
+/* ---------------- filter controls ---------------- */
+function presetName() { const p = PRESETS.find(x => x[0] === S.preset); return p ? p[1] : 'свой'; }
+function applyPreset(id) { const p = PRESETS.find(x => x[0] === id); if (!p) return; S.filter = Object.assign({}, FDEF, p[2]); S.preset = id; save(); renderFilterUI(); }
+function randomFilter() {
+  const r = (a, b) => a + Math.random() * (b - a), maybe = (q, v) => Math.random() < q ? v : 0;
+  S.filter = Object.assign({}, FDEF, {
+    hueSpeed: r(0, 0.6), acid: maybe(0.4, r(0.2, 0.9)), sat: r(0.7, 2), contrast: r(0.9, 1.5), poster: maybe(0.25, r(0.2, 0.7)),
+    wave: maybe(0.5, r(0.1, 0.8)), waveFreq: r(0, 1), twirl: maybe(0.3, r(-0.8, 0.8)), lens: maybe(0.25, r(-0.6, 0.6)),
+    kaleido: maybe(0.3, Math.round(r(3, 12))), kaleidoRot: r(-0.3, 0.3), mirror: maybe(0.2, 1 + Math.floor(Math.random() * 3)),
+    rgb: maybe(0.5, r(0.1, 0.7)), glow: r(0, 1), scan: maybe(0.2, r(0.2, 0.6)), grain: maybe(0.2, r(0.1, 0.5)), vignette: r(0, 0.6),
+    feedback: maybe(0.6, r(0.3, 0.92)), fbZoom: r(-0.6, 0.9), fbRot: r(-0.6, 0.6), fbHue: r(0, 0.8), react: r(0.3, 1.2),
+  });
+  S.preset = 'random'; save(); renderFilterUI();
+}
+function fmtF(key, v) { if (key === 'kaleido') return v < 2 ? 'выкл' : String(Math.round(v)); return (Math.round(v * 100) / 100).toFixed(2); }
+function renderFilterUI() {
+  const name = S.preset === 'random' ? 'случайный' : presetName();
+  $('filterName').textContent = name;
+  $('fxBtn').classList.toggle('fx-on', S.preset !== 'none');
+  for (const box of [$('presetChips'), $('fstrip')]) {
+    box.textContent = '';
+    for (const [id, label] of PRESETS) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = label;
+      b.setAttribute('aria-pressed', String(S.preset === id)); b.addEventListener('click', () => applyPreset(id)); box.append(b);
+    }
+    if (box.id === 'fstrip') { const r = document.createElement('button'); r.type = 'button'; r.className = 'chip'; r.textContent = 'Случайный ✦'; r.setAttribute('aria-pressed', String(S.preset === 'random')); r.addEventListener('click', randomFilter); box.append(r); }
+  }
+  const sl = $('fSliders'); sl.textContent = '';
+  for (const [group, items] of FSL) {
+    const h = document.createElement('h4'); h.textContent = group; sl.append(h);
+    for (const [key, label, min, max, step] of items) {
+      const row = document.createElement('div'); row.className = 'sl';
+      const id = 'f_' + key, lab = document.createElement('label'); lab.htmlFor = id; lab.textContent = label;
+      const out = document.createElement('output'); out.textContent = fmtF(key, S.filter[key]);
+      const inp = document.createElement('input'); inp.type = 'range'; inp.id = id; inp.min = min; inp.max = max; inp.step = step; inp.value = S.filter[key];
+      inp.addEventListener('input', () => {
+        S.filter[key] = +inp.value; out.textContent = fmtF(key, S.filter[key]);
+        if (S.preset !== 'custom') { S.preset = 'custom'; $('filterName').textContent = 'свой'; markPresets(); }
+        save();
+      });
+      row.append(lab, out, inp); sl.append(row);
+    }
+    if (group === 'Искажения') {
+      const row = document.createElement('div'); row.className = 'sl';
+      const lab = document.createElement('label'); lab.textContent = 'Зеркало'; const chips = document.createElement('div'); chips.className = 'chips'; chips.style.gridColumn = '1 / -1';
+      for (const [v, l] of [[0, 'нет'], [1, 'слева направо'], [2, 'сверху вниз'], [3, 'на четыре']]) {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = l; b.setAttribute('aria-pressed', String(S.filter.mirror === v));
+        b.addEventListener('click', () => { S.filter.mirror = v; S.preset = 'custom'; save(); renderFilterUI(); });
+        chips.append(b);
+      }
+      row.append(lab, document.createElement('span'), chips); sl.append(row);
+    }
+  }
+}
+function markPresets() { for (const box of [$('presetChips'), $('fstrip')]) for (const b of box.children) b.setAttribute('aria-pressed', 'false'); $('fxBtn').classList.add('fx-on'); }
+$('fxBtn').addEventListener('click', () => { const st = $('fstrip'); st.hidden = !st.hidden; $('fxBtn').setAttribute('aria-expanded', String(!st.hidden)); hideHint(); });
+$('fRandom').addEventListener('click', randomFilter);
+$('fReset').addEventListener('click', () => applyPreset('none'));
+$('fTune').addEventListener('click', () => { const sl = $('fSliders'); sl.hidden = !sl.hidden; $('fTune').setAttribute('aria-expanded', String(!sl.hidden)); });
+renderFilterUI();
+
 renderPanel();
 resize();
 switchTo(demo, true);
