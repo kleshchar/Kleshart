@@ -671,7 +671,7 @@ const PAL = {
 };
 const ACCENT = { dark: [168, 213, 194], light: [31, 107, 85] };
 const COUNTS = { low: 36000, mid: 82000, high: 165000 };
-const MODEL = { parts: ['model-1.bin', 'model-2.bin'], total: 27084785, ort: 'ort.min.js', side: coarse ? 322 : 406 };
+const MODEL = { parts: ['model-1.bin', 'model-2.bin'], total: 27084785, ort: 'ort.min.js', wasm: './', side: coarse ? 322 : 406 };
 
 /* ---------------- renderer ---------------- */
 const glCanvas = $('gl'), hud = $('hud'), hctx = hud.getContext('2d');
@@ -1197,58 +1197,91 @@ function switchTo(item, instant = false) {
 }
 let cycleT = 0;
 
-/* ---------------- ML depth ---------------- */
-const model = { promise: null, loaded: 0, state: 'idle', session: null };
-function loadScript(src) {
-  return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('script')); document.head.appendChild(s); });
+/* ---------------- ML depth: runs in a background worker so drawing never waits for it ---------------- */
+function depthWorkerMain() { // executed inside the worker; must not use anything from the page
+  let sess = null;
+  const normalize = a => {
+    const sample = []; const step = Math.max(1, Math.floor(a.length / 5000));
+    for (let i = 0; i < a.length; i += step) sample.push(a[i]);
+    sample.sort((x, y) => x - y);
+    const lo = sample[Math.floor(sample.length * 0.02)], hi = sample[Math.floor(sample.length * 0.98)], k = 1 / Math.max(1e-6, hi - lo);
+    for (let i = 0; i < a.length; i++) a[i] = Math.max(0, Math.min(1, (a[i] - lo) * k));
+  };
+  const unb64 = bytes => {
+    let str = ''; const CH = 0x8000;
+    for (let i = 0; i < bytes.length; i += CH) str += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+    const bin = atob(str.trim()), out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  };
+  self.onmessage = async e => {
+    const m = e.data;
+    try {
+      if (m.type === 'init') {
+        importScripts(m.ortUrl);
+        ort.env.wasm.wasmPaths = m.wasmPaths; ort.env.wasm.numThreads = 1; ort.env.wasm.proxy = false;
+        const parts = [];
+        for (const u of m.parts) {
+          const r = await fetch(u); if (!r.ok) throw new Error('HTTP ' + r.status);
+          const rd = r.body.getReader(), chunks = []; let n = 0;
+          for (;;) { const { done, value } = await rd.read(); if (done) break; chunks.push(value); n += value.length; self.postMessage({ type: 'progress', delta: value.length }); }
+          let buf = new Uint8Array(n), o = 0; for (const c of chunks) { buf.set(c, o); o += c.length; }
+          if (/\.txt$/.test(u)) buf = unb64(buf);
+          parts.push(buf);
+        }
+        const all = new Uint8Array(parts.reduce((n, x) => n + x.length, 0)); let o = 0; for (const x of parts) { all.set(x, o); o += x.length; }
+        self.postMessage({ type: 'init-model' });
+        sess = await ort.InferenceSession.create(all.buffer, { executionProviders: ['wasm'], graphOptimizationLevel: 'all' });
+        self.postMessage({ type: 'ready' });
+      } else if (m.type === 'run') {
+        const { w, h } = m, px = new Uint8ClampedArray(m.rgba), n = w * h, data = new Float32Array(3 * n);
+        const mean = [0.485, 0.456, 0.406], std = [0.229, 0.224, 0.225];
+        for (let i = 0; i < n; i++) for (let ch = 0; ch < 3; ch++) data[ch * n + i] = (px[i * 4 + ch] / 255 - mean[ch]) / std[ch];
+        const out = await sess.run({ [sess.inputNames[0]]: new ort.Tensor('float32', data, [1, 3, h, w]) });
+        const t = out[sess.outputNames[0]], dims = t.dims, D = new Float32Array(t.data);
+        normalize(D);
+        self.postMessage({ type: 'result', id: m.id, w: dims[dims.length - 1], h: dims[dims.length - 2], data: D }, [D.buffer]);
+      }
+    } catch (err) {
+      self.postMessage({ type: m.type === 'run' ? 'run-error' : 'error', id: m.id, message: String((err && err.message) || err) });
+    }
+  };
 }
-async function fetchPart(url, onDelta) {
-  const r = await fetch(url); if (!r.ok) throw new Error('HTTP ' + r.status);
-  if (!r.body || !r.body.getReader) { const b = new Uint8Array(await r.arrayBuffer()); onDelta(b.length); return b; }
-  const rd = r.body.getReader(), chunks = []; let n = 0;
-  for (;;) { const { done, value } = await rd.read(); if (done) break; chunks.push(value); n += value.length; onDelta(value.length); }
-  const out = new Uint8Array(n); let o = 0; for (const c of chunks) { out.set(c, o); o += c.length; } return out;
-}
-function unb64(bytes) { // model parts ship as base64 text
-  let str = ''; const CH = 0x8000;
-  for (let i = 0; i < bytes.length; i += CH) str += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
-  const bin = atob(str.trim()), out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-  return out;
-}
+const model = { promise: null, loaded: 0, state: 'idle', worker: null, pending: new Map(), seq: 0 };
 function ensureModel() {
   if (model.promise) return model.promise;
   model.state = 'loading'; updateStatus();
-  model.promise = (async () => {
-    await loadScript(MODEL.ort);
-    const ort = window.ort;
-    ort.env.wasm.wasmPaths = new URL('./', document.baseURI).href;
-    ort.env.wasm.numThreads = 1; ort.env.wasm.proxy = false;
-    const parts = await Promise.all(MODEL.parts.map(p => fetchPart(p, d => { model.loaded += d; updateStatus(); }).then(b => /\.txt$/.test(p) ? unb64(b) : b)));
-    const buf = new Uint8Array(parts.reduce((n, x) => n + x.length, 0));
-    let off = 0; for (const x of parts) { buf.set(x, off); off += x.length; }
-    model.state = 'init'; updateStatus();
-    model.session = await ort.InferenceSession.create(buf.buffer, { executionProviders: ['wasm'], graphOptimizationLevel: 'all' });
-    model.state = 'ready'; updateStatus();
-    return model.session;
-  })().catch(err => { console.warn('depth model', err); model.state = 'failed'; updateStatus(); throw err; });
+  model.promise = new Promise((resolve, reject) => {
+    const abs = u => new URL(u, document.baseURI).href;
+    const w = model.worker = new Worker(URL.createObjectURL(new Blob(['(' + depthWorkerMain.toString() + ')()'], { type: 'text/javascript' })));
+    w.onmessage = e => {
+      const m = e.data;
+      if (m.type === 'progress') { model.loaded += m.delta; updateStatus(); }
+      else if (m.type === 'init-model') { model.state = 'init'; updateStatus(); }
+      else if (m.type === 'ready') { model.state = 'ready'; updateStatus(); resolve(model); }
+      else if (m.type === 'error') reject(new Error(m.message));
+      else {
+        const p = model.pending.get(m.id); if (!p) return; model.pending.delete(m.id);
+        if (m.type === 'result') p.resolve({ w: m.w, h: m.h, data: m.data }); else p.reject(new Error(m.message));
+      }
+    };
+    w.onerror = e => reject(new Error(e.message || 'worker failed'));
+    w.postMessage({ type: 'init', ortUrl: abs(MODEL.ort), wasmPaths: abs(MODEL.wasm), parts: MODEL.parts.map(abs) });
+  }).catch(err => { console.warn('depth model', err); model.state = 'failed'; updateStatus(); throw err; });
   return model.promise;
 }
+const depthCanvas = document.createElement('canvas'), depthCtx = depthCanvas.getContext('2d', { willReadFrequently: true });
 async function runDepth(sess, src, side = MODEL.side) {
-  const sw = src.videoWidth || src.width, sh = src.videoHeight || src.height;
-  const ort = window.ort, L = side, ar = sw / sh;
+  const sw = src.videoWidth || src.width, sh = src.videoHeight || src.height, L = side, ar = sw / sh;
   let w = ar >= 1 ? L : Math.round(L * ar / 14) * 14, h = ar >= 1 ? Math.round(L / ar / 14) * 14 : L;
   w = Math.max(14 * 8, w); h = Math.max(14 * 8, h);
-  const c = document.createElement('canvas'); c.width = w; c.height = h;
-  const g = c.getContext('2d', { willReadFrequently: true }); g.imageSmoothingQuality = 'high'; g.drawImage(src, 0, 0, w, h);
-  const px = g.getImageData(0, 0, w, h).data, n = w * h, data = new Float32Array(3 * n);
-  const mean = [0.485, 0.456, 0.406], std = [0.229, 0.224, 0.225];
-  for (let i = 0; i < n; i++) for (let ch = 0; ch < 3; ch++) data[ch * n + i] = (px[i * 4 + ch] / 255 - mean[ch]) / std[ch];
-  const out = await sess.run({ [sess.inputNames[0]]: new ort.Tensor('float32', data, [1, 3, h, w]) });
-  const o = out[sess.outputNames[0]], dims = o.dims, oh = dims[dims.length - 2], ow = dims[dims.length - 1];
-  const D = new Float32Array(o.data);
-  normalize(D);
-  return { w: ow, h: oh, data: D };
+  if (depthCanvas.width !== w || depthCanvas.height !== h) { depthCanvas.width = w; depthCanvas.height = h; }
+  depthCtx.imageSmoothingQuality = 'high'; depthCtx.drawImage(src, 0, 0, w, h);
+  const img = depthCtx.getImageData(0, 0, w, h), id = ++model.seq;
+  return new Promise((resolve, reject) => {
+    model.pending.set(id, { resolve, reject });
+    model.worker.postMessage({ type: 'run', id, w, h, rgba: img.data.buffer }, [img.data.buffer]);
+  });
 }
 let busy = false;
 async function processQueue() {
@@ -1454,11 +1487,12 @@ async function camDepthLoop() {
     const sess = await ensureModel(); updateStatus();
     while (camv.on && camv.depthMode === 'ml' && active) {
       const t0 = performance.now();
-      const D = await runDepth(sess, camv.video, coarse ? 182 : 252);
+      const D = await runDepth(sess, camv.video, coarse ? 168 : 252);
       if (!camv.on || camv.depthMode !== 'ml') break;
       if (camv.depth && camv.depth.w === D.w && camv.depth.h === D.h) for (let i = 0; i < D.data.length; i++) D.data[i] = camv.depth.data[i] * 0.35 + D.data[i] * 0.65;
       const first = !camv.depth; camv.depth = D; uploadDepth(D); if (first) updateStatus();
-      await new Promise(r => setTimeout(r, Math.max(16, 90 - (performance.now() - t0))));
+      const took = performance.now() - t0;
+      await new Promise(r => setTimeout(r, coarse ? Math.max(250, took) : Math.max(40, took * 0.5)));
     }
   } catch (e) { updateStatus(); }
   camv.mlBusy = false;
